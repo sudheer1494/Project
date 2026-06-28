@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Sparkles, ShieldCheck, Zap, Clock } from 'lucide-react'
+import { Search, Sparkles, ShieldCheck, Zap, Clock, Heart } from 'lucide-react'
 import { TOOLS, CATEGORIES, getToolBySlug } from '../tools/registry.js'
 import ToolCard from '../components/ToolCard.jsx'
-import { getRecent, getFavorites } from '../lib/storage.js'
+import { getRecent } from '../lib/storage.js'
+import { useFavorites } from '../context/FavoritesContext.jsx'
 import { useDocumentMeta } from '../lib/useDocumentMeta.js'
 
 export default function HomePage() {
@@ -16,11 +17,14 @@ export default function HomePage() {
   const activeCategory = searchParams.get('category') || 'all'
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState([])
-  const [favorites, setFavorites] = useState([])
+  const { favorites: favoriteSlugs } = useFavorites()
+  const favorites = useMemo(
+    () => favoriteSlugs.map(getToolBySlug).filter(Boolean),
+    [favoriteSlugs],
+  )
 
   useEffect(() => {
     setRecent(getRecent().map(getToolBySlug).filter(Boolean))
-    setFavorites(getFavorites().map(getToolBySlug).filter(Boolean))
   }, [])
 
   const setCategory = (id) => {
@@ -92,9 +96,21 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Recently used & favorites */}
+      {/* Favorites & recently used */}
       {(recent.length > 0 || favorites.length > 0) && !query && activeCategory === 'all' && (
         <section className="container-page">
+          {favorites.length > 0 && (
+            <div className="mb-8">
+              <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">
+                <Heart className="h-5 w-5 fill-current text-rose-500" /> Your favorites
+              </h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {favorites.slice(0, 4).map((tool) => (
+                  <ToolCard key={tool.slug} tool={tool} />
+                ))}
+              </div>
+            </div>
+          )}
           {recent.length > 0 && (
             <div className="mb-8">
               <h2 className="mb-4 flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-white">

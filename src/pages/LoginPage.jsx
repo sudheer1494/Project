@@ -1,18 +1,51 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Wrench, Mail, Lock } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Wrench, Mail, Lock, User, Loader2 } from 'lucide-react'
 import { useDocumentMeta } from '../lib/useDocumentMeta.js'
 import { useToast } from '../context/ToastContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 import { Field } from '../components/ui.jsx'
 
 export default function LoginPage() {
   useDocumentMeta('Sign in — ToolsBase', 'Sign in or create a free ToolsBase account.')
   const { toast } = useToast()
+  const navigate = useNavigate()
+  const { signUp, signIn, signInWithGoogle } = useAuth()
   const [mode, setMode] = useState('signup')
+  const [busy, setBusy] = useState(false)
+  const [form, setForm] = useState({ fullName: '', email: '', password: '' })
 
-  const handleSubmit = (e) => {
+  const update = (key) => (e) => setForm({ ...form, [key]: e.target.value })
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    toast('Accounts are coming soon — all tools are free to use right now!', 'info', 5000)
+    setBusy(true)
+    try {
+      if (mode === 'signup') {
+        const { data, error } = await signUp(form.email, form.password, form.fullName)
+        if (error) throw error
+        if (data.session) {
+          toast('Welcome to ToolsBase!', 'success')
+          navigate('/')
+        } else {
+          toast('Check your email to confirm your account.', 'info', 6000)
+        }
+      } else {
+        const { error } = await signIn(form.email, form.password)
+        if (error) throw error
+        toast('Welcome back!', 'success')
+        navigate('/')
+      }
+    } catch (err) {
+      toast(err.message || 'Something went wrong', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleGoogle = async () => {
+    const { error } = await signInWithGoogle()
+    if (error) toast(error.message, 'error')
   }
 
   return (
@@ -27,25 +60,34 @@ export default function LoginPage() {
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {mode === 'signup'
-              ? 'Save favorites and unlock larger file limits.'
+              ? 'Save favorites across devices and unlock larger file limits.'
               : 'Sign in to continue to ToolsBase.'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="card space-y-4 p-6">
+          {mode === 'signup' && (
+            <Field label="Full name">
+              <div className="relative">
+                <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input className="input pl-10" placeholder="Jane Doe" value={form.fullName} onChange={update('fullName')} />
+              </div>
+            </Field>
+          )}
           <Field label="Email">
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input required type="email" className="input pl-10" placeholder="you@example.com" />
+              <input required type="email" className="input pl-10" placeholder="you@example.com" value={form.email} onChange={update('email')} />
             </div>
           </Field>
           <Field label="Password">
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input required type="password" className="input pl-10" placeholder="••••••••" />
+              <input required type="password" minLength={6} className="input pl-10" placeholder="••••••••" value={form.password} onChange={update('password')} />
             </div>
           </Field>
-          <button type="submit" className="btn-primary w-full">
+          <button type="submit" className="btn-primary w-full" disabled={busy}>
+            {busy && <Loader2 className="h-4 w-4 animate-spin" />}
             {mode === 'signup' ? 'Sign up' : 'Log in'}
           </button>
           <div className="relative py-1 text-center">
@@ -54,7 +96,7 @@ export default function LoginPage() {
             </span>
             <span className="absolute left-0 top-1/2 h-px w-full bg-slate-200 dark:bg-slate-700" />
           </div>
-          <button type="button" onClick={handleSubmit} className="btn-secondary w-full">
+          <button type="button" onClick={handleGoogle} className="btn-secondary w-full">
             Continue with Google
           </button>
         </form>

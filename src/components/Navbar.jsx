@@ -1,14 +1,30 @@
 import { useState } from 'react'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
-import { Menu, X, Wrench } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Menu, X, Wrench, LogOut } from 'lucide-react'
 import { CATEGORIES } from '../tools/registry.js'
+import { useAuth } from '../context/AuthContext.jsx'
+import { useToast } from '../context/ToastContext.jsx'
 import ThemeToggle from './ThemeToggle.jsx'
 
 const navCategories = CATEGORIES.filter((c) => c.id !== 'all')
 
+function initials(user) {
+  const name = user?.user_metadata?.full_name || user?.email || '?'
+  return name.trim().charAt(0).toUpperCase()
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false)
   const navigate = useNavigate()
+  const { user, signOut } = useAuth()
+  const { toast } = useToast()
+
+  const handleSignOut = async () => {
+    await signOut()
+    setOpen(false)
+    toast('Signed out', 'info')
+    navigate('/')
+  }
 
   const goCategory = (id) => {
     setOpen(false)
@@ -41,12 +57,29 @@ export default function Navbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           <ThemeToggle />
-          <Link to="/login" className="btn-ghost">
-            Log in
-          </Link>
-          <Link to="/login" className="btn-primary">
-            Sign Up
-          </Link>
+          {user ? (
+            <>
+              <span
+                className="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+                title={user.email}
+              >
+                {initials(user)}
+              </span>
+              <button onClick={handleSignOut} className="btn-ghost" title="Sign out">
+                <LogOut className="h-4 w-4" />
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="btn-ghost">
+                Log in
+              </Link>
+              <Link to="/login" className="btn-primary">
+                Sign Up
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
@@ -75,12 +108,20 @@ export default function Navbar() {
               </button>
             ))}
             <div className="mt-2 flex gap-2">
-              <Link to="/login" className="btn-secondary flex-1" onClick={() => setOpen(false)}>
-                Log in
-              </Link>
-              <Link to="/login" className="btn-primary flex-1" onClick={() => setOpen(false)}>
-                Sign Up
-              </Link>
+              {user ? (
+                <button onClick={handleSignOut} className="btn-secondary flex-1">
+                  <LogOut className="h-4 w-4" /> Sign out
+                </button>
+              ) : (
+                <>
+                  <Link to="/login" className="btn-secondary flex-1" onClick={() => setOpen(false)}>
+                    Log in
+                  </Link>
+                  <Link to="/login" className="btn-primary flex-1" onClick={() => setOpen(false)}>
+                    Sign Up
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -1,15 +1,14 @@
-import { useState } from 'react'
 import { Heart } from 'lucide-react'
-import { isFavorite, toggleFavorite } from '../lib/storage.js'
+import { useFavorites } from '../context/FavoritesContext.jsx'
 
 export default function FavoriteButton({ slug, className = '' }) {
-  const [fav, setFav] = useState(() => isFavorite(slug))
+  const { isFavorite, toggleFavorite } = useFavorites()
+  const fav = isFavorite(slug)
 
   const handle = (e) => {
     e.preventDefault()
     e.stopPropagation()
     toggleFavorite(slug)
-    setFav((f) => !f)
   }
 
   return (
