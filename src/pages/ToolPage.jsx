@@ -15,10 +15,9 @@ export default function ToolPage() {
   const { slug } = useParams()
   const tool = getToolBySlug(slug)
 
-  useDocumentMeta(
-    tool ? `${tool.name} — ToolsBase` : 'Tool not found — ToolsBase',
-    tool?.description,
-  )
+  // Title/description come from the shared SEO map (matches the prerendered
+  // HTML); only override for the not-found case.
+  useDocumentMeta(tool ? undefined : 'Tool not found — ToolsBase')
 
   useEffect(() => {
     if (tool) pushRecent(tool.slug)

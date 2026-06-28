@@ -6,7 +6,7 @@
   "description": "ToolsBase - Every tool you need, in one place. Free online PDF, image, and utility tools.",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && node scripts/generate-sitemap.mjs && node scripts/prerender-seo.mjs",
     "preview": "vite preview",
     "lint": "eslint ."
   },
