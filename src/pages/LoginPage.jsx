@@ -45,7 +45,18 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     const { error } = await signInWithGoogle()
-    if (error) toast(error.message, 'error')
+    if (error) {
+      // Google provider not configured in Supabase yet — show friendly guidance
+      // instead of the raw "provider is not enabled" API error.
+      const notEnabled = /not enabled|unsupported provider/i.test(error.message || '')
+      toast(
+        notEnabled
+          ? 'Google sign-in isn’t set up yet — please sign up with email & password.'
+          : error.message,
+        'info',
+        5000,
+      )
+    }
   }
 
   return (
