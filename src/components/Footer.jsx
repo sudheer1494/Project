@@ -48,6 +48,11 @@ export default function Footer() {
               </Link>
             </li>
             <li>
+              <Link to="/blog" className="text-slate-500 hover:text-brand-600 dark:text-slate-400">
+                Blog
+              </Link>
+            </li>
+            <li>
               <Link to="/privacy" className="text-slate-500 hover:text-brand-600 dark:text-slate-400">
                 Privacy Policy
               </Link>

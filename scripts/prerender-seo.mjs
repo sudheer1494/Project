@@ -8,7 +8,9 @@
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { marked } from 'marked'
 import { getAllRoutes, getRouteMeta, SITE_NAME, SITE_URL } from '../src/lib/seo.js'
+import { ARTICLES } from '../src/content/articles.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const dist = resolve(__dirname, '../dist')
@@ -38,7 +40,20 @@ function headFor(meta) {
 }
 
 // Crawlable fallback shown inside #root before React hydrates.
-function bodyFallback(meta) {
+function bodyFallback(meta, path) {
+  // For blog articles, bake the full rendered body into the static HTML so the
+  // page is fully indexable without JS (content pages live or die on this).
+  const articleMatch = path.match(/^\/blog\/([\w-]+)$/)
+  if (articleMatch) {
+    const a = ARTICLES.find((x) => x.slug === articleMatch[1])
+    if (a) {
+      return `<article style="max-width:768px;margin:0 auto;padding:24px">
+        <h1>${esc(a.title)}</h1>
+        <p><em>${esc(a.description)}</em></p>
+        ${marked.parse(a.body)}
+      </article>`
+    }
+  }
   return `<div style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">
         <h1>${esc(meta.h1)}</h1>
         <p>${esc(meta.description)}</p>
@@ -64,7 +79,7 @@ for (const { path } of getAllRoutes()) {
   let html = stripExisting(template).replace('</head>', `    ${headFor(meta)}\n  </head>`)
 
   // Inject the crawlable fallback into the empty mount node.
-  html = html.replace('<div id="root"></div>', `<div id="root">${bodyFallback(meta)}</div>`)
+  html = html.replace('<div id="root"></div>', `<div id="root">${bodyFallback(meta, path)}</div>`)
 
   const outPath = path === '/' ? resolve(dist, 'index.html') : resolve(dist, `.${path}`, 'index.html')
   mkdirSync(dirname(outPath), { recursive: true })

@@ -2,6 +2,7 @@
 // meta updates) and Node build scripts (sitemap + prerender). No JSX, no
 // browser-only globals.
 import { CATALOG, CATEGORY_LABELS } from '../tools/catalog.js'
+import { ARTICLES } from '../content/articles.js'
 
 // Site origin. Override at build time with VITE_SITE_URL; falls back to the
 // current Vercel domain. (import.meta.env is undefined in plain Node.)
@@ -55,6 +56,34 @@ function toolJsonLd(t) {
         name: q,
         acceptedAnswer: { '@type': 'Answer', text: a },
       })),
+    },
+  ]
+}
+
+function articleJsonLd(a) {
+  const url = `${SITE_URL}/blog/${a.slug}`
+  return [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Article',
+      headline: a.title,
+      description: a.description,
+      datePublished: a.date,
+      dateModified: a.date,
+      author: { '@type': 'Organization', name: SITE_NAME },
+      publisher: { '@type': 'Organization', name: SITE_NAME, logo: { '@type': 'ImageObject', url: `${SITE_URL}/favicon.svg` } },
+      image: OG_IMAGE,
+      mainEntityOfPage: url,
+      url,
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${SITE_URL}/` },
+        { '@type': 'ListItem', position: 2, name: 'Blog', item: `${SITE_URL}/blog` },
+        { '@type': 'ListItem', position: 3, name: a.title, item: url },
+      ],
     },
   ]
 }
@@ -119,6 +148,31 @@ export function getRouteMeta(pathname) {
     }
   }
 
+  if (path === '/blog') {
+    return {
+      ...base,
+      title: `Blog — Guides for PDF, Image & Utility Tools | ${SITE_NAME}`,
+      description:
+        'Practical, free guides for working with PDFs, images and everyday utilities — merge, compress, convert and more.',
+      h1: 'ToolsBase Blog',
+    }
+  }
+
+  const articleMatch = path.match(/^\/blog\/([\w-]+)$/)
+  if (articleMatch) {
+    const a = ARTICLES.find((x) => x.slug === articleMatch[1])
+    if (a) {
+      return {
+        ...base,
+        title: `${a.title} | ${SITE_NAME}`,
+        description: a.description,
+        jsonLd: articleJsonLd(a),
+        h1: a.title,
+        ogType: 'article',
+      }
+    }
+  }
+
   const staticPages = {
     '/about': ['About', 'Learn about ToolsBase, the free online tool hub for PDFs, images and everyday utilities.'],
     '/privacy': ['Privacy Policy', 'How ToolsBase handles your data. Most tools process files entirely in your browser.'],
@@ -141,12 +195,16 @@ export function getRouteMeta(pathname) {
 export function getAllRoutes() {
   const routes = [
     { path: '/', priority: '1.0', changefreq: 'weekly' },
+    { path: '/blog', priority: '0.7', changefreq: 'weekly' },
     { path: '/about', priority: '0.5', changefreq: 'monthly' },
     { path: '/privacy', priority: '0.3', changefreq: 'yearly' },
     { path: '/contact', priority: '0.4', changefreq: 'monthly' },
   ]
   for (const t of CATALOG) {
     routes.push({ path: `/tool/${t.slug}`, priority: '0.8', changefreq: 'weekly' })
+  }
+  for (const a of ARTICLES) {
+    routes.push({ path: `/blog/${a.slug}`, priority: '0.7', changefreq: 'monthly' })
   }
   return routes
 }
